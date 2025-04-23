@@ -5,7 +5,8 @@ import threading
 import httpx
 from collections import defaultdict, deque
 
-from config import rol, OPENROUTER_API_KEY, VERIFY_TOKEN, PAGE_ACCESS_TOKEN
+from config import rol
+from env import OPENROUTER_API_KEY, VERIFY_TOKEN, PAGE_ACCESS_TOKEN
 from embeddings import buscar_contexto
 
 app = Flask(__name__)
@@ -40,7 +41,8 @@ def recibir_mensajes():
 def procesar_mensaje(evento):
     try:
         sender_id = evento['sender']['id']
-        mensaje = evento['message']['text']
+        mensaje = evento['message'].get('text', '').strip()
+        
         print(f"\n📝 Mensaje de {sender_id}: {mensaje}")
 
         conversaciones[sender_id].append({"role": "user", "content": mensaje})
@@ -54,6 +56,9 @@ def procesar_mensaje(evento):
         ]
 
         respuesta = responder_con_openrouter(historial)
+        if not respuesta:
+            print("⚠️ Respuesta vacía o con error. No se enviará nada.")
+            return
         conversaciones[sender_id].append({"role": "assistant", "content": respuesta})
 
         enviar_mensaje(sender_id, respuesta)
@@ -83,7 +88,7 @@ def responder_con_openrouter(historial):
             return "Lo siento, no pude generar una respuesta en este momento."
     except Exception as e:
         print("❌ Error con OpenRouter:", e)
-        return "Lo siento, hubo un error al generar la respuesta."
+        return None
 
 def enviar_mensaje(sender_id, mensaje):
     url = "https://graph.facebook.com/v17.0/me/messages"

@@ -1,11 +1,3 @@
-from openai import OpenAI
-client = OpenAI(api_key="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")
-
-OPENROUTER_API_KEY = "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" 
-VERIFY_TOKEN = 'mi_token_secreto'
-PAGE_ACCESS_TOKEN = 'EAAPSZBQctP7MBOxLUcUC6w5HuZCCvyvOvx1giVDKtNdgNcte2onJB3WyhnwGD2dm1CmY6NNVA9oSHGvvHpG7tVeo50ZA2k6TOT7TI25fKTgEpAZAJOC5ozLNV3BBYKBZC2Wuxv8zUrdhIw2SJiZAU2z49bQZBKkxOVEmaVWsADDE5yBnjTtunftnfWR2byrKU2ivEv1BmFjClvShRneuQZDZD'  # copiado del paso anterior
-
-
 rol = '''
 Eres "PrinterBot" un asistente para una imprenta llamada "Printer Boy".
 Tu trabajo es ayudar a los clientes con:
