@@ -1,6 +1,7 @@
 #"mistralai/mistral-7b-instruct", 
 # #"openai/gpt-3.5-turbo",  
 # # también puedes usar mistral, anthropic/claude-3, etc.
+#
 
 
 rol = '''

@@ -9,7 +9,7 @@ from config import rol, OPENROUTER_API_KEY, VERIFY_TOKEN, PAGE_ACCESS_TOKEN
 from embeddings import buscar_contexto
 
 app = Flask(__name__)
-deque_max = 6
+deque_max = 16
 conversaciones = defaultdict(lambda: deque(maxlen=deque_max))
 
 @app.route('/webhook', methods=['GET'])
@@ -69,12 +69,18 @@ def responder_con_openrouter(historial):
             "Content-Type": "application/json"
         }
         data = {
-            "model": 'microsoft/mai-ds-r1:free',#"openai/gpt-3.5-turbo",
+            "model": 'openai/gpt-4.1-nano', #'microsoft/mai-ds-r1:free',#"openai/gpt-3.5-turbo",
             "messages": historial
         }
         response = httpx.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"].strip()
+        respuesta_json = response.json()
+        print("🧾 Respuesta JSON:", response.json())
+        if "choices" in respuesta_json and len(respuesta_json["choices"]) > 0:
+            return respuesta_json["choices"][0]["message"]["content"].strip()
+        else:
+            print("⚠️ Respuesta inesperada:", respuesta_json)
+            return "Lo siento, no pude generar una respuesta en este momento."
     except Exception as e:
         print("❌ Error con OpenRouter:", e)
         return "Lo siento, hubo un error al generar la respuesta."
