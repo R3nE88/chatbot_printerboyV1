@@ -1,7 +1,3 @@
-from openai import OpenAI
-
-
-client = OpenAI(api_key="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")
 OPENROUTER_API_KEY = "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" 
 VERIFY_TOKEN = 'mi_token_secreto'
 PAGE_ACCESS_TOKEN = 'EAAPSZBQctP7MBOxLUcUC6w5HuZCCvyvOvx1giVDKtNdgNcte2onJB3WyhnwGD2dm1CmY6NNVA9oSHGvvHpG7tVeo50ZA2k6TOT7TI25fKTgEpAZAJOC5ozLNV3BBYKBZC2Wuxv8zUrdhIw2SJiZAU2z49bQZBKkxOVEmaVWsADDE5yBnjTtunftnfWR2byrKU2ivEv1BmFjClvShRneuQZDZD'  # copiado del paso anterior
