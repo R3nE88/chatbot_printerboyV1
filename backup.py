@@ -32,3 +32,17 @@ Si te piden algun calculo de precio NO escribas la formula, solo el resultado.
 es muy importante que no escribas mucho texto, solo escribe la informacion necesaria por la que se te pide.
 No respondas a algo que no este relacionado con la imprenta.
 ''';
+
+
+
+
+       #   carlitos 432006514228650
+
+        #  miface: 2171048089669458
+
+        #ngrok http 5000
+
+
+
+
+        

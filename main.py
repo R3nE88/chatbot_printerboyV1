@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 import requests
 import json
 import threading
@@ -12,6 +12,7 @@ from embeddings import buscar_contexto
 app = Flask(__name__)
 deque_max = 16
 conversaciones = defaultdict(lambda: deque(maxlen=deque_max))
+usuarios_info = {}  # key = sender_id, value = {"nombre": "Juan Pérez", "activo": True}
 
 @app.route('/webhook', methods=['GET'])
 def verificar_webhook():
@@ -42,7 +43,19 @@ def procesar_mensaje(evento):
     try:
         sender_id = evento['sender']['id']
         mensaje = evento['message'].get('text', '').strip()
-        
+
+        if sender_id not in usuarios_info:
+            nombre = obtener_nombre_usuario(sender_id)
+            usuarios_info[sender_id] = {"nombre": nombre, "activo": True}
+            print(f"📝 Usuario {usuarios_info[sender_id]['nombre']} guardado con estado 'activo'!")
+        else:
+            print(f"🔍 Usuario {usuarios_info[sender_id]['nombre']} ya existe. Estado actual: {usuarios_info[sender_id]['activo']}")
+
+
+        if not usuarios_info[sender_id]["activo"]:
+            print(f"⛔ Usuario {usuarios_info[sender_id]['nombre']} está inactivo. No se responderá.")
+            return
+
         print(f"\n📝 Mensaje de {sender_id}: {mensaje}")
 
         conversaciones[sender_id].append({"role": "user", "content": mensaje})
@@ -100,6 +113,41 @@ def enviar_mensaje(sender_id, mensaje):
         "message": {"text": mensaje}
     }
     requests.post(url, params=params, json=payload)
+
+def obtener_nombre_usuario(user_id):
+    url = f"https://graph.facebook.com/{user_id}"
+    params = {
+        "access_token": PAGE_ACCESS_TOKEN,
+        "fields": "first_name,last_name"
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        return f"{data.get('first_name', '')} {data.get('last_name', '')}"
+    return "Desconocido"
+
+@app.route('/admin')
+def panel_admin():
+    return render_template("admin.html", usuarios_json=usuarios_info)  # ✅
+
+
+@app.route('/toggle/<user_id>', methods=['POST'])
+def toggle_usuario(user_id):
+    if user_id in usuarios_info:
+        usuarios_info[user_id]["activo"] = not usuarios_info[user_id]["activo"]
+        estado = "activado" if usuarios_info[user_id]["activo"] else "desactivado"
+        print(f"🔁 Usuario {usuarios_info[user_id]['nombre']} ha sido {estado}")
+    else:
+        print(f"⚠️ Usuario con ID {user_id} no encontrado.")
+    return "", 204  # No Content
+
+@app.route('/api/usuarios')
+def obtener_usuarios():
+    return {
+        uid: {"nombre": info["nombre"], "activo": info["activo"]}
+        for uid, info in usuarios_info.items()
+    }
+
 
 if __name__ == '__main__':
     app.run(port=5000)

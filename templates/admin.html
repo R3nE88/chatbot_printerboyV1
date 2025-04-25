@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <h2>Usuarios activos del bot</h2>
+    <div id="usuarios-container"></div>
+
+    <script>
+        const usuariosInfo = {{ usuarios_json | tojson }};
+        console.log("👀 Usuarios desde backend:", usuariosInfo);
+    </script>
+    
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>
