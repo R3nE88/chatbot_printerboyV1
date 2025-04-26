@@ -5,11 +5,9 @@ import threading
 import httpx
 from collections import defaultdict, deque
 import os
-
 from config import rol
-#from env import OPENROUTER_API_KEY, VERIFY_TOKEN, PAGE_ACCESS_TOKEN
 from embeddings import buscar_contexto
-import os
+
 
 # Si existe un archivo .env, lo carga (para entorno local)
 if os.path.exists('.env'):
@@ -23,7 +21,7 @@ PAGE_ACCESS_TOKEN = os.environ.get('PAGE_ACCESS_TOKEN')
 app = Flask(__name__)
 deque_max = 16
 conversaciones = defaultdict(lambda: deque(maxlen=deque_max))
-usuarios_info = {}  # key = sender_id, value = {"nombre": "Juan Pérez", "activo": True}
+usuarios_info = {}
 
 @app.route('/webhook', methods=['GET'])
 def verificar_webhook():

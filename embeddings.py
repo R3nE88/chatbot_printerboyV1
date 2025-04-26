@@ -1,50 +1,37 @@
-import pandas as pd
+import numpy as np
+import pickle
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
+# Cargar modelo solo para codificar mensajes nuevos
 modelo = SentenceTransformer('all-MiniLM-L6-v2')
-excel_data = pd.read_excel("datos_bot.xlsx", sheet_name=None)
 
-productos_df = excel_data["Productos"]
-sucursales_df = excel_data["Sucursales"]
-politicas_df = excel_data["Politicas"]
-calculos_df = excel_data["Calculos"]
+# Cargar vectores y base de conocimiento ya procesados
+vectores = np.load("vectores.npy")
+with open("base_conocimiento.pkl", "rb") as f:
+    base_conocimiento = pickle.load(f)
 
-base_conocimiento = []
-
-for _, row in productos_df.iterrows():
-    texto = f"Producto: {row['Nombre']}, Descripción: {row['Descripcion']}, Precio: {row['Precio']}$"
-    base_conocimiento.append(texto)
-
-for _, row in sucursales_df.iterrows():
-    texto = (
-        f"La sucursal llamada '{row['Sucursal']}' está ubicada en {row['Ubicacion']}, "
-        f"{row['Ciudad']}. Su horario de atención es: {row['Horario']}. "
-        f"Puedes comunicarte al teléfono {row['Telefono']}."
-    )
-    base_conocimiento.append(texto)
-
-for _, row in politicas_df.iterrows():
-    texto = f"Política sobre {row['Tema']}: {row['Detalle']}"
-    base_conocimiento.append(texto)
-
-for _, row in calculos_df.iterrows():
-    texto = f"Cálculo relacionado con '{row['Pregunta']}': {row['Explicacion']}"
-    base_conocimiento.append(texto)
-
-vectores = modelo.encode(base_conocimiento)
+# (Opcional) Cargar también datos de sucursales, si quieres mantener respuestas especiales
+import pandas as pd
+if "datos_bot.xlsx" in os.listdir():
+    excel_data = pd.read_excel("datos_bot.xlsx", sheet_name="Sucursales")
+    sucursales_df = excel_data
+else:
+    sucursales_df = None  # Evitar error si no existe en producción
 
 def buscar_contexto(mensaje, top_n=8):
+    # Codificar el mensaje
     emb_mensaje = modelo.encode([mensaje])
+
+    # Calcular similitudes
     similitudes = cosine_similarity(emb_mensaje, vectores)[0]
     top_indices = np.argsort(similitudes)[-top_n:][::-1]
     contexto = "\n".join([base_conocimiento[i] for i in top_indices])
 
-    # Palabras clave que indican que se quiere información de sucursales
+    # Agregar información de sucursales si el mensaje lo pide
     palabras_clave_sucursales = ["ubicación", "ubicaciones", "dirección", "direccion", "direcciones", "dónde", "sucursal", "sucursales", "local", "ubican"]
 
-    if any(palabra in mensaje.lower() for palabra in palabras_clave_sucursales):
+    if sucursales_df is not None and any(palabra in mensaje.lower() for palabra in palabras_clave_sucursales):
         sucursales_contexto = "\n".join([
             f"Sucursal: {row['Sucursal']}, Ciudad: {row['Ciudad']}, Dirección: {row['Ubicacion']}, Teléfono: {row['Telefono']}, Horario: {row['Horario']}"
             for _, row in sucursales_df.iterrows()
