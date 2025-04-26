@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import os
 
 # Cargar modelo solo para codificar mensajes nuevos
 modelo = SentenceTransformer('all-MiniLM-L6-v2')
