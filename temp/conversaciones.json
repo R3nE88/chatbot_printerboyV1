@@ -1,0 +1,52 @@
+{
+  "2171048089669458": [
+    {
+      "role": "user",
+      "content": "Hola\nK"
+    },
+    {
+      "role": "assistant",
+      "content": "¡Hola! 😊 ¿En qué puedo ayudarte hoy con nuestros servicios de impresión?"
+    },
+    {
+      "role": "user",
+      "content": "hola\nHola"
+    },
+    {
+      "role": "assistant",
+      "content": "¡Hola de nuevo! 😊 ¿En qué puedo ayudarte con nuestros servicios de imprenta?"
+    },
+    {
+      "role": "user",
+      "content": "Quería\nSaber\nSi manejan\nLas\nCopias\nDe\nColor"
+    },
+    {
+      "role": "assistant",
+      "content": "¡Sí, manejamos copias a color! 📄✨ ¿Quieres saber los precios o cómo hacer un pedido?"
+    },
+    {
+      "role": "user",
+      "content": "Porfavor"
+    },
+    {
+      "role": "assistant",
+      "content": "Claro, las copias a color no las manejamos, solo a blanco y negro. ¿Te gustaría que te contacte un asesor para más información? 😊"
+    },
+    {
+      "role": "user",
+      "content": "Porfavor\nesta abierta la sucursal de la 7?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sí, la sucursal 7 está abierta.🕗 Atienden de lunes a sábado de 8:00am a 8:00pm y domingo de 10:00am a 6:00pm. ¿Quieres que te proporcione su contacto o dirección?"
+    },
+    {
+      "role": "user",
+      "content": "si"
+    },
+    {
+      "role": "assistant",
+      "content": "¡Perfecto! Por favor, déjame tus datos de contacto para que un asesor te pueda ayudar. 😊"
+    }
+  ]
+}

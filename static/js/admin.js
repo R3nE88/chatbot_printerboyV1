@@ -1,16 +1,40 @@
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("usuarios-container");
+    
 
     if (!container) return;
 
     // Cargar usuarios inicialmente
     fetchUsuarios();
 
-    // Consultar los usuarios cada 10 segundos
-    setInterval(fetchUsuarios, 10000);
+    // Consultar los usuarios cada 30 segundos
+    setInterval(fetchUsuarios, 30000);
 });
 
 function fetchUsuarios() {
+    const botSwitch = document.getElementById("bot-switch");
+    const botStatusText = document.getElementById("bot-status-text");
+
+    if (botSwitch && botStatusText) {
+        // Cargar estado inicial del bot
+        fetch("/api/bot_estado")
+            .then(response => response.json())
+            .then(data => {
+                botSwitch.checked = data.activo;
+                botStatusText.textContent = data.activo ? "Bot activo" : "Bot inactivo";
+            })
+            .catch(err => console.error("Error al cargar estado del bot:", err));
+
+        // Cambiar estado al mover el switch
+        botSwitch.addEventListener("change", () => {
+            const url = botSwitch.checked ? "/bot/on" : "/bot/off";
+            fetch(url, { method: "POST" })
+                .then(() => {
+                    botStatusText.textContent = botSwitch.checked ? "Bot activo" : "Bot inactivo";
+                })
+                .catch(err => console.error("Error al cambiar estado global del bot:", err));
+        });
+    }
     fetch("/api/usuarios")
         .then(response => response.json())
         .then(usuarios => {

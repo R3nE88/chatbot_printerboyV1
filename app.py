@@ -7,7 +7,10 @@ from collections import defaultdict, deque
 import os
 from config import rol
 from embeddings import buscar_contexto
-
+from storage import StorageManager
+from datetime import datetime, timezone
+import pytz
+import threading
 
 # Si existe un archivo .env, lo carga (para entorno local)
 if os.path.exists('.env'):
@@ -19,9 +22,15 @@ VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN')
 PAGE_ACCESS_TOKEN = os.environ.get('PAGE_ACCESS_TOKEN')
 
 app = Flask(__name__)
+
+storage = StorageManager()
 deque_max = 16
-conversaciones = defaultdict(lambda: deque(maxlen=deque_max))
-usuarios_info = {}
+# Cargar datos guardados
+usuarios_info = storage.cargar_usuarios()
+conversaciones = storage.cargar_conversaciones(deque_max=deque_max)
+bot_activo = storage.cargar_estado_bot()  # ← Nuevo: estado global del bot
+message_timers = {}
+
 
 @app.route('/webhook', methods=['GET'])
 def verificar_webhook():
@@ -49,44 +58,70 @@ def recibir_mensajes():
         return "error", 500
 
 def procesar_mensaje(evento):
-    try:
-        sender_id = evento['sender']['id']
-        mensaje = evento['message'].get('text', '').strip()
+    if not bot_activo:
+        return
 
-        if sender_id not in usuarios_info:
-            nombre = obtener_nombre_usuario(sender_id)
-            usuarios_info[sender_id] = {"nombre": nombre, "activo": True}
-            print(f"📝 Usuario {usuarios_info[sender_id]['nombre']} guardado con estado 'activo'!")
-        else:
-            print(f"🔍 Usuario {usuarios_info[sender_id]['nombre']} ya existe. Estado actual: {usuarios_info[sender_id]['activo']}")
+    sender_id = evento['sender']['id']
+    mensaje = evento['message']['text'].strip()
 
+    # Inicializar usuario la primera vez
+    now = datetime.now(pytz.timezone('America/Phoenix'))
+    user = usuarios_info.setdefault(sender_id, {
+        "nombre": obtener_nombre_usuario(sender_id),
+        "activo": True,
+        "message_buffer": []
+    })
 
-        if not usuarios_info[sender_id]["activo"]:
-            print(f"⛔ Usuario {usuarios_info[sender_id]['nombre']} está inactivo. No se responderá.")
+    if not user["activo"]:
+        return
+
+    # 1) Acumula
+    user["message_buffer"].append(mensaje)
+    user["last_message_time"] = now
+    storage.guardar_usuarios(usuarios_info)
+
+    # 2) Cancela timer previo (si existe)
+    if sender_id in message_timers:
+        message_timers[sender_id].cancel()
+
+    # 3) Arranca un nuevo timer de 5 seg
+    def on_timeout():
+        buffer = user.get("message_buffer", [])
+        if not buffer:
             return
+        mensaje_completo = "\n".join(buffer)
+        user["message_buffer"] = []
+        _procesar_buffer(sender_id, mensaje_completo)
 
-        print(f"\n📝 Mensaje de {sender_id}: {mensaje}")
+    t = threading.Timer(5, on_timeout)
+    message_timers[sender_id] = t
+    t.start()
 
-        conversaciones[sender_id].append({"role": "user", "content": mensaje})
+def _procesar_buffer(sender_id, mensaje_completo):
+    try:
+        # Guardar en historial
+        conversaciones[sender_id].append({"role":"user","content":mensaje_completo})
+        storage.guardar_conversaciones(conversaciones)
 
-        contexto = buscar_contexto(mensaje)
+        mst = pytz.timezone('America/Phoenix')
+        ahora = datetime.now(mst)
+        hora_str = ahora.strftime("%H:%M, %d/%m/%Y")
 
+        contexto = buscar_contexto(mensaje_completo)
         historial = [
-            {"role": "system", "content": rol},
-            {"role": "system", "content": f"Información relevante:\n{contexto}"},
+            {"role":"system","content": rol},
+            {"role":"system","content": f"Información relevante:\n{contexto}"},
+            {"role": "system", "content": f"La hora actual es: {hora_str}."},
             *conversaciones[sender_id]
         ]
 
         respuesta = responder_con_openrouter(historial)
-        if not respuesta:
-            print("⚠️ Respuesta vacía o con error. No se enviará nada.")
-            return
-        conversaciones[sender_id].append({"role": "assistant", "content": respuesta})
-
-        enviar_mensaje(sender_id, respuesta)
-
+        if respuesta:
+            conversaciones[sender_id].append({"role":"assistant","content":respuesta})
+            storage.guardar_conversaciones(conversaciones)
+            enviar_mensaje(sender_id, respuesta)
     except Exception as e:
-        print("❌ Error al procesar mensaje:", e)
+        print("❌ Error en _procesar_buffer:", e)
 
 def responder_con_openrouter(historial):
     try:
@@ -145,6 +180,7 @@ def toggle_usuario(user_id):
     if user_id in usuarios_info:
         usuarios_info[user_id]["activo"] = not usuarios_info[user_id]["activo"]
         estado = "activado" if usuarios_info[user_id]["activo"] else "desactivado"
+        storage.guardar_usuarios(usuarios_info)
         print(f"🔁 Usuario {usuarios_info[user_id]['nombre']} ha sido {estado}")
     else:
         print(f"⚠️ Usuario con ID {user_id} no encontrado.")
@@ -157,6 +193,25 @@ def obtener_usuarios():
         for uid, info in usuarios_info.items()
     }
 
+@app.route('/bot/on', methods=['POST'])
+def activar_bot():
+    global bot_activo
+    bot_activo = True
+    storage.guardar_estado_bot(bot_activo)
+    print("✅ Bot ACTIVADO globalmente.")
+    return "", 204
+
+@app.route('/bot/off', methods=['POST'])
+def desactivar_bot():
+    global bot_activo
+    bot_activo = False
+    storage.guardar_estado_bot(bot_activo)
+    print("⛔ Bot DESACTIVADO globalmente.")
+    return "", 204
+
+@app.route('/api/bot_estado')
+def estado_bot():
+    return {"activo": bot_activo}
 
 port = int(os.environ.get("PORT", 5000))
 if __name__ == "__main__":
