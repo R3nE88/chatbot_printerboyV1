@@ -5,7 +5,7 @@ from datetime import datetime
 from collections import defaultdict, deque
 
 # Usaremos temp en local y /tmp en Render
-BASE_PATH = '/tmp'
+BASE_PATH = os.getenv("BASE_PATH", "/tmp")
 os.makedirs(BASE_PATH, exist_ok=True)
 
 class StorageManager:
